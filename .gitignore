@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### macOS ###
+.DS_Store
+
+### 환경 변수 / 민감 정보 ###
+.env
+application-local.yml
+application-secret.yml
+
+### 로그 ###
+*.log
+logs/
