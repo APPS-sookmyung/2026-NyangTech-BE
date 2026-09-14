@@ -10,9 +10,11 @@ import com.nyangtech.nyangtechbackend.repository.UserRepository;
 import com.nyangtech.nyangtechbackend.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -20,6 +22,12 @@ public class AuthService {
     private final CatRepository catRepository;
 
     public JoinResponse join(JoinRequest request) {
+
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            return JoinResponse.builder()
+                    .isNewUser(false)
+                    .build();
+        }
 
         User user = User.builder()
                 .provider(request.getProvider())
@@ -50,7 +58,6 @@ public class AuthService {
         catRepository.save(cat);
 
         return JoinResponse.builder()
-                .token("test-token")
                 .isNewUser(true)
                 .build();
     }
