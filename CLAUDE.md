@@ -48,15 +48,16 @@
 | 회원가입/로그인 | `/api/v1/auth/join` | POST | `{provider, email, password, nickname?}` (nickname은 신규 가입 시 필수, 기존 유저 로그인 시 무시) | `{token, isNewUser}` |
 | 초기 고양이 설정 | `/api/v1/user/cat-init` | POST | `{catName, monthlyBudget}` | `{userId, catId, affection}` |
 | 알림 설정 변경 | `/api/v1/user/settings/noti` | PATCH | `{isRemindOn, remindTime, isOverBudgetOn}` | `{settingsId}` |
-| 프로필 설정 수정 | `/api/v1/user/profile` | PATCH | `{nickname, catName}` | `{nickname, catName}` |
+| 프로필 설정 수정 | `/api/v1/user/profile` | PATCH | `{nickname?, catName?}` (바꿀 항목만 보냄, 둘 다 없으면 400) | `{nickname, catName}` (고양이가 없으면 catName은 null) |
 
 ### 🟢 축1 — 홈 및 고양이 성장
 
 | 기능 | Endpoint | Method | Request | Response |
 | --- | --- | --- | --- | --- |
-| 희귀 고양이 해금 확인 | `/api/v1/cat/rare-unlock` | GET | - | `List<{catType, isUnlocked, conditionText}>` |
+| 희귀 고양이 해금 확인 | `/api/v1/cat/rare-unlock` | GET | - | `List<{catTypeId, catType, isUnlocked, conditionText}>` (`catTypeId` 추가) |
 | 고양이 졸업 처리 | `/api/v1/cat/graduate` | POST | `{catId}` | `{collectionId, nextSelectionUrl}` |
-| 호감도/성장 정보 | `/api/v1/cat/status` | GET | - | `{level, affection, nextStepMarker, isGraduated}` |
+| 호감도/성장 정보 | `/api/v1/cat/status` | GET | - | `{catId, level, affection, nextStepMarker, isGraduated, canGraduate}` (`catId`, `canGraduate` 추가) |
+| 새 고양이 맞이하기 (**명세 외 추가**) | `/api/v1/cat/adopt` | POST | `{catTypeId, catName}` | `{catId, catName, catType, affection}` |
 | 아이템 장착 변경 | `/api/v1/cat/appearance` | PATCH | `List<itemId>` | `{catImageWithLayers}` |
 | 홈 화면 정보 조회 | `/api/v1/home` | GET | - | `{catImage, equippedItems[], affection, currentRate, diaryMessage}` |
 
@@ -156,3 +157,25 @@
 
 ## API 수동 테스트
 - IntelliJ에서 `http/*.http` 파일을 열고 ▶ 버튼으로 실행한다. (실행 환경은 `local` 선택)
+
+## 고양이(cat) 도메인
+> ⚠️ 아래 규칙 중 "임시"라고 표시된 것은 기획이 확정되지 않아 임의로 정한 값이다. 확정되면 해당 파일만 고친다.
+
+### 성장 규칙 (`CatGrowthPolicy` 한 파일에서만 관리, 임시)
+- 호감도 0 / 100 / 250 / 450 / 700 에서 레벨 1~5. 호감도 상한 700. **레벨 5(최고 레벨)가 되어야 졸업 가능**
+- `nextStepMarker` = 다음 레벨이 시작되는 호감도 (최고 레벨이면 null) — 의미는 임시 해석
+- `nextSelectionUrl` = `/cat/select` (프론트 화면 경로, 임시)
+
+### 규칙
+- 유저당 "졸업하지 않은 고양이"는 최대 1마리. **"현재 고양이" = 가장 최근에 만난 고양이** (졸업 후 새 고양이를 맞이하기 전까지는 졸업한 그 고양이)
+- 첫 고양이는 `cat-init`(기본 종류 중 첫 번째, 이미 고양이가 있으면 409), 졸업 후에는 `cat/adopt` 로 새 고양이를 맞이한다
+- 종류: 기본 종류(처음부터 선택 가능) / 희귀 종류(고양이 N마리 졸업 시 자동 해금). 종류 데이터는 서버 시작 시 `CatTypeSeeder` 가 채운다 (이름/조건은 임시)
+- 졸업 시 도감(`cat_collections`)에 기록하고, 졸업한 고양이 수 조건을 채운 희귀 종류를 해금한다
+
+### 다른 도메인이 호출하는 cat 창구 (`CatService`)
+- `increaseAffection(userId, amount)` — 함께하는 고양이의 호감도를 올린다. 고양이가 없으면 아무 일도 하지 않는다. amount 는 1 이상 (소비 기록 시 호출)
+- `findCurrentCatName(userId)`, `getStatus(userId)` — 홈 화면 등에서 조회
+
+### 축2(예산)와 연결하는 접점
+- `cat-init` 이 받는 `monthlyBudget` 은 `cat/port/MonthlyBudgetRegistrar` 를 구현한 `@Component` 가 있으면 자동으로 전달된다. **구현체가 없으면 검증만 하고 저장하지 않는다.**
+  (같은 트랜잭션에서 호출되므로 저장이 실패하면 고양이 생성도 취소된다)

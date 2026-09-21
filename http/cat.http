@@ -1,0 +1,67 @@
+### 냥테크 cat 도메인 API 수동 테스트 (IntelliJ HTTP Client)
+### 먼저 user.http 의 "1-2. 회원가입" 또는 "1-3. 로그인"을 실행해 토큰({{token}})을 저장한 뒤 실행한다.
+### 호감도를 올리는 API는 축2(소비 기록) 영역이라 아직 없으므로, 졸업 성공/새 고양이 맞이하기는 직접 확인하려면
+### CatService.increaseAffection 을 호출하는 테스트나 임시 코드가 필요하다. (자동 테스트로는 전체 흐름 검증 완료)
+
+### 1. 초기 고양이 설정 → 200 (이미 있으면 409 CAT_ALREADY_EXISTS)
+POST {{host}}/api/v1/user/cat-init
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "catName": "나비",
+  "monthlyBudget": 300000
+}
+
+### 2. 호감도/성장 정보 → 200 (고양이가 없으면 404 CAT_NOT_FOUND). catId 를 자동 저장한다.
+GET {{host}}/api/v1/cat/status
+Authorization: Bearer {{token}}
+
+> {%
+    if (response.body.data) {
+        client.global.set("catId", response.body.data.catId);
+    }
+%}
+
+### 3. 희귀 고양이 해금 현황 → 200
+GET {{host}}/api/v1/cat/rare-unlock
+Authorization: Bearer {{token}}
+
+### 4. 고양이 졸업 → 최고 레벨이 아니면 400 CAT_NOT_GROWN_ENOUGH
+POST {{host}}/api/v1/cat/graduate
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "catId": {{catId}}
+}
+
+### 5. 졸업 후 새 고양이 맞이하기 (명세 외 추가 API). catTypeId 는 3번 응답의 값을 사용한다.
+###    함께하는 고양이가 있으면 409 ACTIVE_CAT_EXISTS, 해금 안 된 종류면 403 CAT_TYPE_LOCKED
+POST {{host}}/api/v1/cat/adopt
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "catTypeId": 2,
+  "catName": "새냥이"
+}
+
+### 6. 프로필 수정 - 고양이 이름만 → 200 (nickname, catName 중 원하는 것만 보낸다)
+PATCH {{host}}/api/v1/user/profile
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "catName": "초코"
+}
+
+### 7. 프로필 수정 - 닉네임과 고양이 이름 함께 → 200
+PATCH {{host}}/api/v1/user/profile
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nickname": "새집사",
+  "catName": "보리"
+}
