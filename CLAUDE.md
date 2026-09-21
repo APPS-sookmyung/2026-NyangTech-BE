@@ -45,7 +45,7 @@
 
 | 기능 | Endpoint | Method | Request | Response |
 | --- | --- | --- | --- | --- |
-| 회원가입/로그인 | `/api/v1/auth/join` | POST | `{provider, email, password}` | `{token, isNewUser}` |
+| 회원가입/로그인 | `/api/v1/auth/join` | POST | `{provider, email, password, nickname?}` (nickname은 신규 가입 시 필수, 기존 유저 로그인 시 무시) | `{token, isNewUser}` |
 | 초기 고양이 설정 | `/api/v1/user/cat-init` | POST | `{catName, monthlyBudget}` | `{userId, catId, affection}` |
 | 알림 설정 변경 | `/api/v1/user/settings/noti` | PATCH | `{isRemindOn, remindTime, isOverBudgetOn}` | `{settingsId}` |
 | 프로필 설정 수정 | `/api/v1/user/profile` | PATCH | `{nickname, catName}` | `{nickname, catName}` |
@@ -100,4 +100,43 @@
 | 카테고리별 분석 | `/api/v1/analysis/category` | GET | `type (weekly/monthly)` | `List<{category, amount, ratio}>` |
 
 ## 코딩 컨벤션
-> TODO: 응답 포맷(ResponseEntity 래핑 방식), 네이밍 규칙, 예외 처리 방식 등 추가 필요
+
+### 패키지 구조
+- 도메인별 패키지 (`user`, `cat`, `shop`, `finance`, `social`, `analysis`) + 공통 `global`
+- 도메인 안에서는 `controller / service / repository / domain / dto` 로 분리
+- **다른 도메인의 Repository 직접 접근 금지** — 그 도메인의 Service를 통해서만 호출
+- 여러 도메인을 조합만 하는 API(홈 화면 등)는 별도 패키지(`home`)에 둔다
+
+### 응답 포맷
+- 모든 API는 `ApiResponse<T>`를 **그대로 반환**한다. (`ResponseEntity`로 감싸지 않음)
+  - 성공: `{ "success": true, "data": {...}, "error": null }` — HTTP 200
+  - 실패: `{ "success": false, "data": null, "error": { "code": "DUPLICATE_NICKNAME", "message": "..." } }` — ErrorCode의 HTTP 상태
+- 성공 시 `ApiResponse.ok(data)`, 데이터가 없으면 `ApiResponse.ok()`
+
+### 예외 처리
+- 비즈니스 규칙 위반은 `throw new BusinessException(XxxErrorCode.YYY)`
+- 에러 코드는 **도메인별 enum**으로 분리 (`UserErrorCode`, `CatErrorCode`, ...). `ErrorCode` 인터페이스 구현. 공통은 `CommonErrorCode`
+  - 이유: 한 파일에 두 사람이 동시에 추가하면 git 충돌이 나기 때문
+- 예외 변환은 `GlobalExceptionHandler` 한 곳에서만 한다. 컨트롤러에서 try-catch 금지
+
+### Entity / DTO
+- Entity는 `BaseEntity`(createdAt, updatedAt)를 상속하고 `@Setter`를 쓰지 않는다. 상태 변경은 의미 있는 메서드로 (`user.useCoin()`)
+- Entity를 API 응답으로 직접 반환하지 않는다. DTO는 Java `record`, 이름은 `XxxRequest` / `XxxResponse`
+- 입력 검증은 Request DTO에 `@Valid` + Bean Validation 애노테이션
+- 테이블명은 복수형 snake_case (`users`, `cats`, `items`) — `user` 는 DB 예약어라 사용 금지
+
+### 계층별 책임
+- Controller: 요청 받기/응답 만들기만. 로직 금지
+- Service: 비즈니스 로직 + `@Transactional` (조회는 `readOnly = true`)
+- 로그인한 유저의 ID는 토큰에서 꺼낸다. 클라이언트가 userId를 보내지 않는다
+
+### 네이밍
+- 클래스: `XxxController`, `XxxService`, `XxxRepository`
+- 도메인 간 호출용 메서드는 동사로 의도를 드러낸다 (`addCoin`, `increaseAffection`)
+
+### 테스트
+- Service 단위 테스트(Mockito), Repository 테스트(`@DataJpaTest`), API 통합 테스트(MockMvc)
+- 성공 케이스뿐 아니라 실패 케이스(잘못된 입력, 인증 실패, 중복)도 반드시 포함
+
+### 비밀 정보
+- JWT secret, DB 비밀번호 등은 코드/git에 넣지 않고 환경변수 또는 `application-local.yml`(gitignore됨)에 둔다
