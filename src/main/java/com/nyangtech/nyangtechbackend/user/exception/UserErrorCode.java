@@ -16,7 +16,8 @@ public enum UserErrorCode implements ErrorCode {
     UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 방식입니다."),
     NOT_ENOUGH_COIN(HttpStatus.BAD_REQUEST, "코인이 부족합니다."),
     INVALID_COIN_AMOUNT(HttpStatus.BAD_REQUEST, "코인 수량은 1 이상이어야 합니다."),
-    REMIND_TIME_REQUIRED(HttpStatus.BAD_REQUEST, "리마인드 알림을 켜려면 알림 시간이 필요합니다.");
+    REMIND_TIME_REQUIRED(HttpStatus.BAD_REQUEST, "리마인드 알림을 켜려면 알림 시간이 필요합니다."),
+    NOTHING_TO_UPDATE(HttpStatus.BAD_REQUEST, "수정할 항목이 없습니다. nickname 또는 catName 중 하나 이상을 보내주세요.");
 
     private final HttpStatus status;
     private final String message;
