@@ -1,0 +1,104 @@
+### 냥테크 user 도메인 API 수동 테스트 (IntelliJ HTTP Client)
+### 서버를 먼저 실행한 뒤, 각 요청 왼쪽의 ▶ 버튼을 위에서부터 순서대로 누른다.
+### 주소는 http-client.env.json 의 host 값을 사용한다.
+
+### 1-1. 닉네임 없이 신규 이메일로 요청 → 400 NICKNAME_REQUIRED (프론트: 닉네임 입력 화면을 띄울 것)
+POST {{host}}/api/v1/auth/join
+Content-Type: application/json
+
+{
+  "provider": "LOCAL",
+  "email": "test@example.com",
+  "password": "password123!"
+}
+
+### 1-2. 회원가입 (닉네임 포함) → 200, isNewUser=true. 받은 토큰을 자동 저장한다.
+POST {{host}}/api/v1/auth/join
+Content-Type: application/json
+
+{
+  "provider": "LOCAL",
+  "email": "test@example.com",
+  "password": "password123!",
+  "nickname": "테스트냥"
+}
+
+> {%
+    if (response.body.data) {
+        client.global.set("token", response.body.data.token);
+    }
+%}
+
+### 1-3. 로그인 (같은 이메일/비밀번호) → 200, isNewUser=false. nickname은 보내지 않는다.
+POST {{host}}/api/v1/auth/join
+Content-Type: application/json
+
+{
+  "provider": "LOCAL",
+  "email": "test@example.com",
+  "password": "password123!"
+}
+
+> {%
+    if (response.body.data) {
+        client.global.set("token", response.body.data.token);
+    }
+%}
+
+### 1-4. 비밀번호 틀림 → 401 INVALID_CREDENTIALS
+POST {{host}}/api/v1/auth/join
+Content-Type: application/json
+
+{
+  "provider": "LOCAL",
+  "email": "test@example.com",
+  "password": "wrong-password1"
+}
+
+### 2-1. 프로필(닉네임) 수정 → 200  (토큰 필요)
+PATCH {{host}}/api/v1/user/profile
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nickname": "새이름냥"
+}
+
+### 2-2. 토큰 없이 프로필 수정 → 401 UNAUTHORIZED
+PATCH {{host}}/api/v1/user/profile
+Content-Type: application/json
+
+{
+  "nickname": "새이름냥"
+}
+
+### 3-1. 알림 설정 변경 (리마인드 ON, 08:30) → 200, settingsId
+PATCH {{host}}/api/v1/user/settings/noti
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isRemindOn": true,
+  "remindTime": "08:30",
+  "isOverBudgetOn": true
+}
+
+### 3-2. 리마인드 OFF (시간 생략 → 기존 시간 유지) → 200
+PATCH {{host}}/api/v1/user/settings/noti
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isRemindOn": false,
+  "isOverBudgetOn": true
+}
+
+### 3-3. 리마인드 ON인데 시간 없음 → 400 REMIND_TIME_REQUIRED
+PATCH {{host}}/api/v1/user/settings/noti
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "isRemindOn": true,
+  "isOverBudgetOn": true
+}

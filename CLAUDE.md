@@ -140,3 +140,19 @@
 
 ### 비밀 정보
 - JWT secret, DB 비밀번호 등은 코드/git에 넣지 않고 환경변수 또는 `application-local.yml`(gitignore됨)에 둔다
+
+## 인증 (JWT)
+- `POST /api/v1/auth/join` 으로 받은 `token`을 이후 모든 요청 헤더에 `Authorization: Bearer {token}` 으로 보낸다. (`/api/v1/auth/**` 만 인증 없이 호출 가능)
+- 토큰이 없거나 위조/만료되면 `401 UNAUTHORIZED` (ApiResponse 형식). 토큰 유효 기간은 7일이며 Refresh Token은 아직 없다.
+- 컨트롤러에서 로그인한 유저의 ID가 필요하면 파라미터에 `@LoginUserId Long userId` 를 붙인다. (클라이언트가 userId를 보내지 않는다)
+- JWT 비밀키는 `JWT_SECRET` 환경변수(32바이트 이상)로 지정한다. 미설정 시 서버가 켜질 때마다 임시 키를 만들므로 재시작하면 기존 토큰이 무효가 된다.
+- 비밀번호 규칙: 공백 없는 영문/숫자/특수문자 8~64자 / 닉네임 규칙: 한글·영문·숫자·밑줄 2~10자, 중복 불가
+
+## 다른 도메인이 호출하는 user 창구 (`UserService`)
+- `getUser(userId)` — 유저 조회 (없으면 `USER_NOT_FOUND`)
+- `addCoin(userId, amount)` — 코인 지급, 지급 후 잔액 반환 (소비 기록 보상, 간식 선물 등)
+- `useCoin(userId, amount)` — 코인 사용, 남은 잔액 반환. 부족하면 `NOT_ENOUGH_COIN` (상점 구매 등)
+- 코인은 동시 요청에도 값이 틀어지지 않도록 락으로 보호된다. **`User.addCoin/useCoin` 을 직접 호출하지 말고 반드시 위 Service 메서드를 사용한다.**
+
+## API 수동 테스트
+- IntelliJ에서 `http/*.http` 파일을 열고 ▶ 버튼으로 실행한다. (실행 환경은 `local` 선택)
