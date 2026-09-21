@@ -3,8 +3,8 @@
 소비 습관 기반 고양이 키우기(앱) BE 레포지토리
 
 ## Tech Stack
-- Java 21
-- Spring Boot 3.x
+- Java 25
+- Spring Boot 4.1
 - Spring Data JPA
 - MySQL
 
