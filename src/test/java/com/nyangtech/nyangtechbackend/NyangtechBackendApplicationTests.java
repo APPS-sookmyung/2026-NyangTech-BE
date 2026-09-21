@@ -1,4 +1,4 @@
-package com.nyangtech.nyantechbackend;
+package com.nyangtech.nyangtechbackend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
