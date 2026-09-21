@@ -1,27 +1,30 @@
+// entity/BudgetCategory.java
 package com.nyangtech.nyangtechbackend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "budget_category")
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "budget_category")
 public class BudgetCategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "budget_id", nullable = false)
     private Long budgetId;
-
-    @Column(name = "category_id", nullable = false)
     private Long categoryId;
+    private int amount;
 
-    @Column(nullable = false)
-    private Integer amount;
+    public BudgetCategory(Long budgetId, Long categoryId, int amount) {
+        this.budgetId = budgetId;
+        this.categoryId = categoryId;
+        this.amount = amount;
+    }
+    public void updateAmount(int amount) {
+        this.amount = amount;
+    }
 }

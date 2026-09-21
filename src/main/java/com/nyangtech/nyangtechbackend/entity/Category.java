@@ -1,24 +1,25 @@
+// entity/Category.java
 package com.nyangtech.nyangtechbackend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "category")
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "category")
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(nullable = false)
     private String name;
+
+    public Category(Long userId, String name) {
+        this.userId = userId;
+        this.name = name;
+    }
 }

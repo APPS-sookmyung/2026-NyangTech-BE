@@ -1,32 +1,37 @@
+// entity/Spending.java
 package com.nyangtech.nyangtechbackend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "spending")
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "spending")
 public class Spending {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "category_id", nullable = false)
     private Long categoryId;
-
-    @Column(nullable = false)
-    private Integer amount;
-
-    @Column(nullable = false)
+    private int amount;
     private LocalDate date;
+
+    public Spending(Long userId, Long categoryId, int amount, LocalDate date) {
+        this.userId = userId;
+        this.categoryId = categoryId;
+        this.amount = amount;
+        this.date = date;
+    }
+
+    public void update(Long categoryId, int amount, LocalDate date) {
+        this.categoryId = categoryId;
+        this.amount = amount;
+        this.date = date;
+    }
 }
