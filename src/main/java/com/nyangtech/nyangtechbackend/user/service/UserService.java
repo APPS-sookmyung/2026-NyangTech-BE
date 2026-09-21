@@ -91,7 +91,12 @@ public class UserService {
         return user.getCoin();
     }
 
-    private User getUserForUpdate(Long userId) {
+    /**
+     * 유저를 조회하면서 해당 유저 행에 락을 건다. 호출한 트랜잭션이 끝날 때까지 같은 유저를 다루는 다른 요청은 기다린다.
+     * "유저당 하나만 존재해야 하는 것"(예: 활성 고양이)을 동시 요청에서도 지키기 위한 용도. 반드시 트랜잭션 안에서 호출한다.
+     */
+    @Transactional
+    public User getUserForUpdate(Long userId) {
         return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
     }
