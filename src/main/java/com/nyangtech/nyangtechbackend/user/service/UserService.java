@@ -9,6 +9,7 @@ import com.nyangtech.nyangtechbackend.user.repository.UserRepository;
 import com.nyangtech.nyangtechbackend.user.repository.UserSettingsRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,5 +49,50 @@ public class UserService {
         User user = userRepository.saveAndFlush(User.createLocal(email, encodedPassword, nickname));
         userSettingsRepository.save(UserSettings.createDefault(user));
         return user;
+    }
+
+    /** 닉네임을 변경하고 변경된 닉네임을 돌려준다. 현재 닉네임과 같으면 아무것도 하지 않는다. */
+    @Transactional
+    public String changeNickname(Long userId, String nickname) {
+        User user = getUser(userId);
+        if (user.getNickname().equals(nickname)) {
+            return nickname;
+        }
+        if (userRepository.existsByNickname(nickname)) {
+            throw new BusinessException(UserErrorCode.DUPLICATE_NICKNAME);
+        }
+
+        user.changeNickname(nickname);
+        try {
+            // 확인과 저장 사이에 다른 요청이 같은 닉네임을 먼저 가져간 경우를 여기서 바로 잡는다.
+            userRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(UserErrorCode.DUPLICATE_NICKNAME);
+        }
+        return user.getNickname();
+    }
+
+    /**
+     * 유저에게 코인을 지급하고 지급 후 잔액을 돌려준다. (다른 도메인에서 호출: 소비 기록 보상, 간식 선물 등)
+     * 같은 유저의 코인을 동시에 바꾸는 요청은 락으로 순서대로 처리되어 값이 유실되지 않는다.
+     */
+    @Transactional
+    public int addCoin(Long userId, int amount) {
+        User user = getUserForUpdate(userId);
+        user.addCoin(amount);
+        return user.getCoin();
+    }
+
+    /** 코인을 사용하고 남은 잔액을 돌려준다. (상점 구매 등) 잔액이 부족하면 NOT_ENOUGH_COIN. */
+    @Transactional
+    public int useCoin(Long userId, int amount) {
+        User user = getUserForUpdate(userId);
+        user.useCoin(amount);
+        return user.getCoin();
+    }
+
+    private User getUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
     }
 }

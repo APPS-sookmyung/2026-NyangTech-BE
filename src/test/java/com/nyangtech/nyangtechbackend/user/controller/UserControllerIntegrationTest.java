@@ -168,4 +168,110 @@ class UserControllerIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("USER_NOT_FOUND"));
     }
+
+    // ---------------------------------------------------------------- 프로필(닉네임)
+
+    private ResultActions patchProfile(String token, String json) throws Exception {
+        return mockMvc.perform(patch("/api/v1/user/profile")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json));
+    }
+
+    @Test
+    void 닉네임을_변경하면_변경된_닉네임을_주고_DB가_바뀐다() throws Exception {
+        String token = signUp("cat@example.com", "냥집사");
+
+        patchProfile(token, "{\"nickname\":\"새닉네임\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.nickname").value("새닉네임"));
+
+        assertThat(userOf("cat@example.com").getNickname()).isEqualTo("새닉네임");
+    }
+
+    @Test
+    void 현재와_같은_닉네임으로_변경해도_성공한다() throws Exception {
+        String token = signUp("cat@example.com", "냥집사");
+
+        patchProfile(token, "{\"nickname\":\"냥집사\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("냥집사"));
+    }
+
+    @Test
+    void 다른_유저가_쓰는_닉네임이면_409_DUPLICATE_NICKNAME이고_기존_닉네임이_유지된다() throws Exception {
+        String myToken = signUp("me@example.com", "내닉네임");
+        signUp("other@example.com", "남닉네임");
+
+        patchProfile(myToken, "{\"nickname\":\"남닉네임\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("DUPLICATE_NICKNAME"));
+
+        assertThat(userOf("me@example.com").getNickname()).isEqualTo("내닉네임");
+    }
+
+    @Test
+    void 바꾸기_전_닉네임은_다른_사람이_쓸_수_있게_된다() throws Exception {
+        String token = signUp("me@example.com", "예전닉");
+        patchProfile(token, "{\"nickname\":\"새닉네임\"}").andExpect(status().isOk());
+
+        // 예전 닉네임으로 다른 사람이 가입 가능
+        signUp("other@example.com", "예전닉");
+
+        // 새 닉네임으로는 가입 불가
+        mockMvc.perform(post("/api/v1/auth/join")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"LOCAL\",\"email\":\"third@example.com\","
+                                + "\"password\":\"password123!\",\"nickname\":\"새닉네임\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("DUPLICATE_NICKNAME"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"nickname\":\"a\"}",
+            "{\"nickname\":\"열한글자이름이넘어갑니다요요\"}",
+            "{\"nickname\":\"띄 어쓰기\"}",
+            "{\"nickname\":\"특수문자!\"}",
+            "{\"nickname\":\"\"}",
+            "{\"nickname\":null}",
+            "{}",
+            "not json"
+    })
+    void 닉네임_규칙에_어긋나거나_없으면_400_INVALID_INPUT(String json) throws Exception {
+        String token = signUp("cat@example.com", "냥집사");
+
+        patchProfile(token, json)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
+
+        assertThat(userOf("cat@example.com").getNickname()).isEqualTo("냥집사");
+    }
+
+    @Test
+    void 프로필_수정도_토큰이_없으면_401이다() throws Exception {
+        mockMvc.perform(patch("/api/v1/user/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"새닉네임\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 프로필_수정에서_없어진_유저의_토큰이면_404_USER_NOT_FOUND이다() throws Exception {
+        patchProfile(jwtTokenProvider.issue(987_654L), "{\"nickname\":\"새닉네임\"}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    void 아직_지원하지_않는_catName_필드는_무시되고_닉네임만_변경된다() throws Exception {
+        String token = signUp("cat@example.com", "냥집사");
+
+        patchProfile(token, "{\"nickname\":\"새닉네임\",\"catName\":\"나비\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("새닉네임"))
+                .andExpect(jsonPath("$.data.catName").doesNotExist());
+    }
 }
