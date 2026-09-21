@@ -1,8 +1,10 @@
 package com.nyangtech.nyangtechbackend.user.service;
 
+import com.nyangtech.nyangtechbackend.global.exception.BusinessException;
 import com.nyangtech.nyangtechbackend.user.domain.AuthProvider;
 import com.nyangtech.nyangtechbackend.user.domain.User;
 import com.nyangtech.nyangtechbackend.user.domain.UserSettings;
+import com.nyangtech.nyangtechbackend.user.exception.UserErrorCode;
 import com.nyangtech.nyangtechbackend.user.repository.UserRepository;
 import com.nyangtech.nyangtechbackend.user.repository.UserSettingsRepository;
 import java.util.Optional;
@@ -23,6 +25,13 @@ public class UserService {
     @Transactional(readOnly = true)
     public Optional<User> findByProviderAndEmail(AuthProvider provider, String email) {
         return userRepository.findByProviderAndEmail(provider, email);
+    }
+
+    /** 유저를 조회한다. 없으면 USER_NOT_FOUND. */
+    @Transactional(readOnly = true)
+    public User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
