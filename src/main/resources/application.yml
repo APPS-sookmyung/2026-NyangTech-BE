@@ -1,1 +1,32 @@
-spring.application.name=nyangtech-backend
+spring:
+  application:
+    name: nyangtech-backend
+
+  datasource:
+    url: jdbc:h2:mem:nyangtech
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # 요청 처리가 끝난 뒤(화면 렌더링 단계)에는 DB에 접근하지 않는다. 지연 로딩 쿼리가 몰래 나가는 것을 막는다.
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        hbm2ddl:
+          # 테이블 생성이 실패하면 경고만 남기고 넘어가지 않고 앱을 바로 멈춘다. (예약어 오타 같은 실수를 즉시 발견)
+          halt_on_error: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+jwt:
+  # 비워두면 서버가 시작할 때마다 임시 키를 만든다. (재시작하면 발급된 토큰이 모두 무효)
+  # 고정하려면 JWT_SECRET 환경변수에 32바이트 이상의 값을 지정한다. 실제 비밀키는 절대 git에 올리지 않는다.
+  secret: ${JWT_SECRET:}
+  expiration: 7d
