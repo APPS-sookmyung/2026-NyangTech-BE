@@ -52,14 +52,14 @@
 
 ### 🟢 축1 — 홈 및 고양이 성장
 
-| 기능 | Endpoint | Method | Request | Response |
-| --- | --- | --- | --- | --- |
-| 희귀 고양이 해금 확인 | `/api/v1/cat/rare-unlock` | GET | - | `List<{catTypeId, catType, isUnlocked, conditionText}>` (`catTypeId` 추가) |
-| 고양이 졸업 처리 | `/api/v1/cat/graduate` | POST | `{catId}` | `{collectionId, nextSelectionUrl}` |
+| 기능 | Endpoint | Method | Request | Response                                                                                          |
+| --- | --- | --- | --- |---------------------------------------------------------------------------------------------------|
+| 희귀 고양이 해금 확인 | `/api/v1/cat/rare-unlock` | GET | - | `List<{catTypeId, catType, isUnlocked, conditionText}>` (`catTypeId` 추가)                        |
+| 고양이 졸업 처리 | `/api/v1/cat/graduate` | POST | `{catId}` | `{collectionId, nextSelectionUrl}`                                                                |
 | 호감도/성장 정보 | `/api/v1/cat/status` | GET | - | `{catId, level, affection, nextStepMarker, isGraduated, canGraduate}` (`catId`, `canGraduate` 추가) |
-| 새 고양이 맞이하기 (**명세 외 추가**) | `/api/v1/cat/adopt` | POST | `{catTypeId, catName}` | `{catId, catName, catType, affection}` |
-| 아이템 장착 변경 | `/api/v1/cat/appearance` | PATCH | `List<itemId>` | `{catImageWithLayers}` |
-| 홈 화면 정보 조회 | `/api/v1/home` | GET | - | `{catImage, equippedItems[], affection, currentRate, diaryMessage}` |
+| 새 고양이 맞이하기 (**명세 외 추가**) | `/api/v1/cat/adopt` | POST | `{catTypeId, catName}` | `{catId, catName, catType, affection}`                                                            |
+| 아이템 장착 변경 | `/api/v1/cat/appearance` | PATCH | `List<itemId>` | `{catImageWithLayers}`                                                                            |
+| 홈 화면 정보 조회 | `/api/v1/home` | GET | - | `{catImage, equippedItems[], affection, currentRate, diaryMessage}`                               |
 
 ### 🟢 축1 — 상점 및 커스터마이징
 
